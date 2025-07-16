@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Dict, List
-from .exceptions import NegativePriceError, DiscountError
+
+from .exceptions import DiscountError, NegativePriceError
 from .models import LineItem, Receipt
 
 
@@ -9,16 +10,17 @@ class CashRegister:
     A simple cash register to scan items, calculate the total, and reset.
 
     Attributes:
-        _line_items (List[LineItem]): Internal list to track all scanned line items.
+        _line_items (List[LineItem]): Internal list to track all scanned
+            line items.
         _discount_percent (Decimal): Current discount percentage (0-100).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty cash register."""
         self._line_items: List[LineItem] = []
         self._discount_percent: Decimal = Decimal("0")
 
-    def scan_item(self, sku: str, price: Decimal, qty: int = 1):
+    def scan_item(self, sku: str, price: Decimal, qty: int = 1) -> None:
         """
         Add one or more units of an item to the register.
 
@@ -32,7 +34,7 @@ class CashRegister:
         """
         if price <= 0:
             raise NegativePriceError(price)
-        
+
         line_item = LineItem(sku=sku, qty=qty, unit_price=price)
         self._line_items.append(line_item)
 
@@ -41,14 +43,15 @@ class CashRegister:
         Apply a discount percentage to the total.
 
         Args:
-            percent (Decimal): Discount percentage (must be strictly between 0 and 100).
+            percent (Decimal): Discount percentage (must be strictly
+                between 0 and 100).
 
         Raises:
             DiscountError: If the percentage is not strictly between 0 and 100.
         """
         if percent <= 0 or percent >= 100:
             raise DiscountError(percent)
-        
+
         self._discount_percent = percent
 
     def remove_discount(self) -> None:
@@ -64,9 +67,12 @@ class CashRegister:
         Compute the total amount for all scanned items, applying any discount.
 
         Returns:
-            Decimal: The total cost of all items scanned so far, with discount applied.
+            Decimal: The total cost of all items scanned so far, with
+                discount applied.
         """
-        subtotal = sum(item.total_price for item in self._line_items)
+        subtotal = sum(
+            (item.total_price for item in self._line_items), start=Decimal("0")
+        )
         if self._discount_percent > 0:
             discount_amount = subtotal * (self._discount_percent / 100)
             return subtotal - discount_amount
@@ -83,15 +89,15 @@ class CashRegister:
     def to_receipt(self) -> Receipt:
         """
         Generate a receipt from the current register state.
-        
+
         Consolidates line items with the same SKU and unit_price.
-        
+
         Returns:
             Receipt: A receipt containing consolidated line items and totals.
         """
         # Group line items by (sku, unit_price) to consolidate identical items
         consolidated_items: Dict[tuple, LineItem] = {}
-        
+
         for item in self._line_items:
             key = (item.sku, item.unit_price)
             if key in consolidated_items:
@@ -100,22 +106,24 @@ class CashRegister:
             else:
                 # Create new consolidated item
                 consolidated_items[key] = LineItem(
-                    sku=item.sku,
-                    qty=item.qty,
-                    unit_price=item.unit_price
+                    sku=item.sku, qty=item.qty, unit_price=item.unit_price
                 )
-        
+
         # Convert to list and sort by SKU for consistent ordering
         lines = sorted(consolidated_items.values(), key=lambda x: x.sku)
-        
+
         # Calculate totals
-        total_gross = sum(item.total_price for item in lines)
-        discount_amount = total_gross * (self._discount_percent / 100) if self._discount_percent > 0 else Decimal("0")
+        total_gross = sum((item.total_price for item in lines), start=Decimal("0"))
+        discount_amount = (
+            total_gross * (self._discount_percent / 100)
+            if self._discount_percent > 0
+            else Decimal("0")
+        )
         total_due = total_gross - discount_amount
-        
+
         return Receipt(
             lines=lines,
             total_gross=total_gross,
             discount_pct=self._discount_percent,
-            total_due=total_due
+            total_due=total_due,
         )
