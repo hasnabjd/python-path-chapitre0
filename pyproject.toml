@@ -24,3 +24,10 @@ flake8 = "^7.3.0"
 mypy = "^1.17.0"
 pytest-cov = "^6.2.1"
 
+[tool.mypy]
+disallow_untyped_defs = true
+python_version = "3.13"
+
+[tool.flake8]
+max-line-length = 88
+
