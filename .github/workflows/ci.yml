@@ -7,53 +7,23 @@ on:
     branches: [ main ]
 
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: ["3.13"]
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: latest
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-    
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-    
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
-    
-    - name: Install project
-      run: poetry install --no-interaction
-    
-    - name: Lint - Run pre-commit hooks
-      run: |
-        poetry run pre-commit install
-        make precommit
-    
-    - name: Type checking - Run mypy
-      run: make mypy
-    
-    - name: Tests - Run pytest with coverage
-      run: make coverage-ci
-    
-    
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pipx install poetry==2.1.3
+
+      - name: Install dependencies
+        run: poetry install --with dev --no-root
+
+      - name: Run CI pipeline from Makefile
+        run: make check-all
